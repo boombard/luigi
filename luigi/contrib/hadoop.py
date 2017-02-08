@@ -118,7 +118,7 @@ def get_extra_files(extra_files):
     return result
 
 
-def create_packages_archive(packages, filename):
+def create_packages_archive(packages, filename, log=True):
     """
     Create a tar archive which will contain the files for the packages listed in packages.
     """
@@ -126,7 +126,8 @@ def create_packages_archive(packages, filename):
     tar = tarfile.open(filename, "w")
 
     def add(src, dst):
-        logger.debug('adding to tar: %s -> %s', src, dst)
+        if log:
+            logger.debug('adding to tar: %s -> %s', src, dst)
         tar.add(src, dst)
 
     def add_files_for_package(sub_package_path, root_package_path, root_package_name):
