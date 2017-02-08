@@ -604,20 +604,6 @@ class BoolParameter(Parameter):
         return 'store_true'
 
 
-class BooleanParameter(BoolParameter):
-    """
-    DEPRECATED. Use :py:class:`~BoolParameter`
-    """
-
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            'BooleanParameter is deprecated, use BoolParameter instead',
-            DeprecationWarning,
-            stacklevel=2
-        )
-        super(BooleanParameter, self).__init__(*args, **kwargs)
-
-
 class DateIntervalParameter(Parameter):
     """
     A Parameter whose value is a :py:class:`~luigi.date_interval.DateInterval`.
@@ -661,13 +647,14 @@ class TimeDeltaParameter(Parameter):
     def _apply_regex(self, regex, input):
         import re
         re_match = re.match(regex, input)
-        if re_match:
+        if re_match and any(re_match.groups()):
             kwargs = {}
             has_val = False
             for k, v in six.iteritems(re_match.groupdict(default="0")):
                 val = int(v)
-                has_val = has_val or val != 0
-                kwargs[k] = val
+                if val > -1:
+                    has_val = True
+                    kwargs[k] = val
             if has_val:
                 return datetime.timedelta(**kwargs)
 
@@ -697,10 +684,26 @@ class TimeDeltaParameter(Parameter):
         result = self._parseIso8601(input)
         if not result:
             result = self._parseSimple(input)
-        if result:
+        if result is not None:
             return result
         else:
             raise ParameterException("Invalid time delta - could not parse %s" % input)
+
+    def serialize(self, x):
+        """
+        Converts datetime.timedelta to a string
+
+        :param x: the value to serialize.
+        """
+        if not isinstance(x, datetime.timedelta) and self.__class__ == TimeDeltaParameter:
+            warnings.warn("Parameter {0} is not of type timedelta.".format(str(x)))
+        weeks = x.days // 7
+        days = x.days % 7
+        hours = x.seconds // 3600
+        minutes = (x.seconds % 3600) // 60
+        seconds = (x.seconds % 3600) % 60
+        result = "{} w {} d {} h {} m {} s".format(weeks, days, hours, minutes, seconds)
+        return result
 
 
 class TaskParameter(Parameter):
